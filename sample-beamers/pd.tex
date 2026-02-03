@@ -1,0 +1,541 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{upquote}
+
+% Code listing style
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{gray},
+    frame=single,
+    breaklines=true,
+    showstringspaces=false
+}
+
+\title{Partial Derivatives: A Visual Review}
+\subtitle{COMP 395 -- Deep Learning}
+\author{}
+\date{}
+
+\begin{document}
+
+%-----------------------------------------------
+\begin{frame}
+\titlepage
+\vfill
+\begin{center}
+\footnotesize\texttt{pip install numpy matplotlib}
+\end{center}
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{From One Variable to Many}
+
+\textbf{Single-variable review:} Given $f(x) = x^3$, the derivative $\frac{df}{dx} = 3x^2$ tells us the rate of change of $f$ as $x$ changes.
+
+\vspace{0.5cm}
+
+\textbf{But what if we have more than one variable?}
+
+\vspace{0.3cm}
+
+Consider $f(x, y) = x^2 + y^2$
+
+\begin{itemize}
+    \item This defines a \textbf{surface} in 3D space
+    \item At any point, $f$ can change in the $x$-direction, the $y$-direction, or both
+    \item We need a way to measure each rate of change \textit{separately}
+\end{itemize}
+
+\vspace{0.3cm}
+
+\textbf{Key idea:} Hold all variables constant except one, then differentiate.
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Partial Derivative Definition}
+
+\textbf{Notation:} For $f(x, y)$, we write:
+\begin{itemize}
+    \item $\frac{\partial f}{\partial x}$ -- the partial derivative with respect to $x$
+    \item $\frac{\partial f}{\partial y}$ -- the partial derivative with respect to $y$
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{How to compute $\frac{\partial f}{\partial x}$:}
+\begin{enumerate}
+    \item Treat $y$ as a \textbf{constant}
+    \item Differentiate with respect to $x$ using your usual rules
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\textbf{How to compute $\frac{\partial f}{\partial y}$:}
+\begin{enumerate}
+    \item Treat $x$ as a \textbf{constant}
+    \item Differentiate with respect to $y$ using your usual rules
+\end{enumerate}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Example 1: Power Rule}
+
+Let $f(x, y) = x^2 + 3xy + y^3$
+
+\vspace{0.5cm}
+
+\textbf{Find $\frac{\partial f}{\partial x}$:} (treat $y$ as constant)
+\begin{align*}
+\frac{\partial f}{\partial x} &= \frac{\partial}{\partial x}(x^2) + \frac{\partial}{\partial x}(3xy) + \frac{\partial}{\partial x}(y^3) \\
+&= 2x + 3y + 0 \\
+&= 2x + 3y
+\end{align*}
+
+\vspace{0.3cm}
+
+\textbf{Find $\frac{\partial f}{\partial y}$:} (treat $x$ as constant)
+\begin{align*}
+\frac{\partial f}{\partial y} &= \frac{\partial}{\partial y}(x^2) + \frac{\partial}{\partial y}(3xy) + \frac{\partial}{\partial y}(y^3) \\
+&= 0 + 3x + 3y^2 \\
+&= 3x + 3y^2
+\end{align*}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Example 2: With Logarithms and Trig}
+
+Let $g(x, y) = x^2 \ln(y) + \sin(x)$
+
+\vspace{0.5cm}
+
+\textbf{Find $\frac{\partial g}{\partial x}$:} (treat $y$ as constant, so $\ln(y)$ is just a constant)
+\begin{align*}
+\frac{\partial g}{\partial x} &= 2x \cdot \ln(y) + \cos(x)
+\end{align*}
+
+\vspace{0.5cm}
+
+\textbf{Find $\frac{\partial g}{\partial y}$:} (treat $x$ as constant, so $x^2$ and $\sin(x)$ are constants)
+\begin{align*}
+\frac{\partial g}{\partial y} &= x^2 \cdot \frac{1}{y} + 0 = \frac{x^2}{y}
+\end{align*}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Visualizing the Surface}
+
+Consider $f(x, y) = x^2 + y^2$
+
+\vspace{0.3cm}
+
+This is a \textbf{paraboloid} -- a bowl-shaped surface in 3D.
+
+\vspace{0.3cm}
+
+\begin{columns}
+\column{0.5\textwidth}
+\textbf{What does $\frac{\partial f}{\partial x}$ mean geometrically?}
+
+\vspace{0.2cm}
+
+\begin{itemize}
+    \item Slice the surface with a plane where $y = c$ (constant)
+    \item You get a 2D curve (a parabola)
+    \item $\frac{\partial f}{\partial x}$ is the slope of that curve
+\end{itemize}
+
+\column{0.5\textwidth}
+\textbf{What does $\frac{\partial f}{\partial y}$ mean geometrically?}
+
+\vspace{0.2cm}
+
+\begin{itemize}
+    \item Slice the surface with a plane where $x = c$ (constant)
+    \item You get a different 2D curve
+    \item $\frac{\partial f}{\partial y}$ is the slope of that curve
+\end{itemize}
+\end{columns}
+
+\vspace{0.5cm}
+
+\textbf{Let's visualize this in Python!}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}[fragile]{Python: Plotting $f(x,y) = x^2 + y^2$}
+
+\begin{lstlisting}
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+# Create grid of x and y values
+x = np.linspace(-3, 3, 50)
+y = np.linspace(-3, 3, 50)
+X, Y = np.meshgrid(x, y)
+
+# Compute the function
+Z = X**2 + Y**2
+
+# Create 3D plot
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('f(x, y)')
+ax.set_title('$f(x, y) = x^2 + y^2$')
+plt.show()
+\end{lstlisting}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{The 3D Surface: $f(x,y) = x^2 + y^2$}
+
+\begin{center}
+\textit{[Run the Python code to display the paraboloid]}
+\end{center}
+
+\vspace{0.5cm}
+
+\textbf{Key observations:}
+\begin{itemize}
+    \item The surface has a minimum at $(0, 0)$ where $f = 0$
+    \item As you move away from the origin in any direction, $f$ increases
+    \item The partial derivatives tell us how steep the surface is in each coordinate direction
+\end{itemize}
+
+\vspace{0.5cm}
+
+For $f(x,y) = x^2 + y^2$:
+\[
+\frac{\partial f}{\partial x} = 2x \qquad \frac{\partial f}{\partial y} = 2y
+\]
+
+At the point $(1, 2)$: $\frac{\partial f}{\partial x} = 2$ and $\frac{\partial f}{\partial y} = 4$
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}[fragile]{Python: Visualizing Partial Derivatives}
+
+\begin{lstlisting}
+# Add a point and tangent directions
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.6)
+
+# Point (1, 2) on the surface
+px, py = 1, 2
+pz = px**2 + py**2  # f(1,2) = 5
+
+# Plot the point
+ax.scatter([px], [py], [pz], color='red', s=100, label='(1, 2, 5)')
+
+# Partial derivative slopes at (1,2): df/dx = 2, df/dy = 4
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('f(x, y)')
+ax.legend()
+plt.show()
+\end{lstlisting}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Activity Part 1: Your Turn! (15 min)}
+
+\textbf{Problem:} Let $h(x, y) = x^3 - 2xy + y^2$
+
+\vspace{0.5cm}
+
+\textbf{Step 1:} Compute the partial derivatives (on paper):
+\begin{enumerate}
+    \item Find $\frac{\partial h}{\partial x}$
+    \item Find $\frac{\partial h}{\partial y}$
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\textbf{Step 2:} Evaluate at the point $(2, 1)$:
+\begin{enumerate}
+    \item What is $\frac{\partial h}{\partial x}$ at $(2, 1)$?
+    \item What is $\frac{\partial h}{\partial y}$ at $(2, 1)$?
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\textbf{Step 3:} Plot the surface in Python (see next slide for starter code).
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}[fragile]{Activity Part 1: Plotting Code}
+
+\textbf{Modify this code to plot $h(x, y) = x^3 - 2xy + y^2$:}
+
+\begin{lstlisting}
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+x = np.linspace(-3, 3, 50)
+y = np.linspace(-3, 3, 50)
+X, Y = np.meshgrid(x, y)
+
+# TODO: Define Z = h(x, y)
+Z = _______________________  # Fill this in!
+
+fig = plt.figure(figsize=(10, 8))
+ax = fig.add_subplot(111, projection='3d')
+ax.plot_surface(X, Y, Z, cmap='coolwarm', alpha=0.8)
+ax.set_xlabel('x')
+ax.set_ylabel('y')
+ax.set_zlabel('h(x, y)')
+ax.set_title('$h(x, y) = x^3 - 2xy + y^2$')
+plt.show()
+\end{lstlisting}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Activity Part 1: Solutions}
+
+For $h(x, y) = x^3 - 2xy + y^2$:
+
+\vspace{0.3cm}
+
+\textbf{Partial derivatives:}
+\[
+\frac{\partial h}{\partial x} = 3x^2 - 2y \qquad \frac{\partial h}{\partial y} = -2x + 2y
+\]
+
+\vspace{0.3cm}
+
+\textbf{At the point $(2, 1)$:}
+\begin{align*}
+\frac{\partial h}{\partial x}\bigg|_{(2,1)} &= 3(2)^2 - 2(1) = 12 - 2 = 10 \\[0.3cm]
+\frac{\partial h}{\partial y}\bigg|_{(2,1)} &= -2(2) + 2(1) = -4 + 2 = -2
+\end{align*}
+
+\vspace{0.3cm}
+
+\textbf{Python:} \texttt{Z = X**3 - 2*X*Y + Y**2}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Beyond Visualization: Higher Dimensions}
+
+So far we can visualize functions of 2 variables as surfaces in 3D.
+
+\vspace{0.5cm}
+
+\textbf{But what about functions of 4, 5, or 1000 variables?}
+
+\vspace{0.3cm}
+
+\begin{itemize}
+    \item We can't visualize $f(x_1, x_2, x_3, x_4, x_5)$ as a surface
+    \item But partial derivatives still work exactly the same way!
+    \item Each $\frac{\partial f}{\partial x_i}$ tells us how $f$ changes when we vary $x_i$ alone
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{The math doesn't care about our visual limitations.}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Activity Part 2: High Dimensions (10 min)}
+
+\textbf{Problem:} Let $f(x_1, x_2, x_3, x_4, x_5) = x_1^3 + 2x_2^2 + x_3 x_4 + \ln(x_5) + 5x_1$
+
+\vspace{0.5cm}
+
+\textbf{Find all five partial derivatives:}
+\begin{enumerate}
+    \item $\frac{\partial f}{\partial x_1} = $
+    \item $\frac{\partial f}{\partial x_2} = $
+    \item $\frac{\partial f}{\partial x_3} = $
+    \item $\frac{\partial f}{\partial x_4} = $
+    \item $\frac{\partial f}{\partial x_5} = $
+\end{enumerate}
+
+\vspace{0.5cm}
+
+\textbf{Evaluate all partial derivatives at the point $(1, 2, 3, 4, 1)$}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Activity Part 2: Solutions}
+
+For $f(x_1, x_2, x_3, x_4, x_5) = x_1^3 + 2x_2^2 + x_3 x_4 + \ln(x_5) + 5x_1$
+
+\vspace{0.3cm}
+
+\textbf{Partial derivatives:}
+\begin{align*}
+\frac{\partial f}{\partial x_1} &= 3x_1^2 + 5 & \frac{\partial f}{\partial x_2} &= 4x_2 \\[0.2cm]
+\frac{\partial f}{\partial x_3} &= x_4 & \frac{\partial f}{\partial x_4} &= x_3 \\[0.2cm]
+\frac{\partial f}{\partial x_5} &= \frac{1}{x_5}
+\end{align*}
+
+\vspace{0.3cm}
+
+\textbf{At $(1, 2, 3, 4, 1)$:}
+\begin{align*}
+\frac{\partial f}{\partial x_1} &= 3(1)^2 + 5 = 8 & \frac{\partial f}{\partial x_2} &= 4(2) = 8 \\[0.2cm]
+\frac{\partial f}{\partial x_3} &= 4 & \frac{\partial f}{\partial x_4} &= 3 \\[0.2cm]
+\frac{\partial f}{\partial x_5} &= \frac{1}{1} = 1
+\end{align*}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{The Gradient: Collecting All Partial Derivatives}
+
+We can package all partial derivatives into a single vector called the \textbf{gradient}:
+
+\vspace{0.5cm}
+
+\textbf{Notation:} For $f(x_1, x_2, \ldots, x_n)$, the gradient is:
+\[
+\nabla f = \begin{pmatrix} \frac{\partial f}{\partial x_1} \\[0.3cm] \frac{\partial f}{\partial x_2} \\[0.3cm] \vdots \\[0.3cm] \frac{\partial f}{\partial x_n} \end{pmatrix}
+\]
+
+\vspace{0.3cm}
+
+\textbf{Example:} For our 5-variable function at $(1, 2, 3, 4, 1)$:
+\[
+\nabla f \big|_{(1,2,3,4,1)} = \begin{pmatrix} 8 \\ 8 \\ 4 \\ 3 \\ 1 \end{pmatrix}
+\]
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Discussion: What Does the Gradient Mean? (10 min)}
+
+\textbf{Think-Pair-Share:}
+
+\vspace{0.5cm}
+
+Consider our 2-variable example: $f(x,y) = x^2 + y^2$ at point $(1, 2)$
+
+The gradient is: $\nabla f = \begin{pmatrix} 2x \\ 2y \end{pmatrix} = \begin{pmatrix} 2 \\ 4 \end{pmatrix}$ at $(1, 2)$
+
+\vspace{0.5cm}
+
+\textbf{Questions to discuss:}
+\begin{enumerate}
+    \item If you're standing on the surface at $(1, 2, 5)$ and want to walk in a direction that makes $f$ increase as fast as possible, which direction should you go?
+    
+    \item What direction would make $f$ \textit{decrease} as fast as possible?
+    
+    \item What if you walked perpendicular to the gradient -- what would happen to $f$?
+\end{enumerate}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Key Insight: The Gradient Points ``Uphill''}
+
+\textbf{Fundamental property of the gradient:}
+
+\vspace{0.3cm}
+
+\begin{center}
+\fbox{\parbox{0.85\textwidth}{
+The gradient $\nabla f$ at a point is a vector that:
+\begin{itemize}
+    \item Points in the direction of \textbf{steepest increase} of $f$
+    \item Has magnitude equal to the \textbf{rate of steepest increase}
+\end{itemize}
+}}
+\end{center}
+
+\vspace{0.5cm}
+
+\textbf{Consequences:}
+\begin{itemize}
+    \item $-\nabla f$ points in the direction of steepest \textit{decrease}
+    \item Directions perpendicular to $\nabla f$ are ``level'' (no change in $f$)
+    \item At a minimum or maximum, $\nabla f = \mathbf{0}$
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{This is true regardless of how many variables we have!}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Summary}
+
+\textbf{Today we learned:}
+
+\vspace{0.3cm}
+
+\begin{enumerate}
+    \item \textbf{Partial derivatives} measure how a function changes when we vary one variable while holding all others constant
+    
+    \vspace{0.2cm}
+    
+    \item The same differentiation rules (power, log, trig) apply -- just treat other variables as constants
+    
+    \vspace{0.2cm}
+    
+    \item For 2-variable functions, we can visualize partial derivatives as slopes of slices through a surface
+    
+    \vspace{0.2cm}
+    
+    \item Partial derivatives work identically in any number of dimensions, even when we can't visualize
+    
+    \vspace{0.2cm}
+    
+    \item The \textbf{gradient} $\nabla f$ collects all partial derivatives into a vector that points in the direction of steepest increase
+\end{enumerate}
+
+\end{frame}
+
+%-----------------------------------------------
+\begin{frame}{Looking Ahead}
+
+\textbf{Why does this matter?}
+
+\vspace{0.5cm}
+
+The gradient will become essential as we move forward. For now, remember:
+
+\vspace{0.3cm}
+
+\begin{itemize}
+    \item Functions of many variables are everywhere in computation
+    \item The gradient tells us which way is ``uphill'' on any surface
+    \item This works in 2 dimensions, 5 dimensions, or 5 million dimensions
+\end{itemize}
+
+\vspace{0.5cm}
+
+\textbf{Next time:} We'll see how the gradient connects to optimization.
+
+\end{frame}
+
+\end{document}

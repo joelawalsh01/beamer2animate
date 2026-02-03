@@ -1,0 +1,13 @@
+[project]
+name = "beamer2animate"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pdf2image>=1.17.0",
+    "pillow>=12.1.0",
+    "pylatexenc>=2.10",
+    "pymupdf>=1.26.7",
+    "python-pptx>=1.0.2",
+]
