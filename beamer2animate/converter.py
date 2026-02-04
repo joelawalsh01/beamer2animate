@@ -130,7 +130,7 @@ class BeamerConverter:
 
         # Pass 3: Place images on slide
         current_top = 1.2 if frame.title else 0.5
-        left_margin = 0.5
+        left_margin = 1.0
         shapes_by_block = []
 
         for block_idx, image_paths, is_animated, spacing in rendered_blocks:

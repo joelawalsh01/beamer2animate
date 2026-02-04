@@ -34,9 +34,9 @@ def add_slide(prs: Presentation, layout_index: int = 6) -> 'Slide':
 
 def add_title_to_slide(slide, title: str, font_size: int = 32):
     """Add a title text box to the slide."""
-    left = Inches(0.5)
+    left = Inches(1.0)
     top = Inches(0.3)
-    width = Inches(12)
+    width = Inches(11.333)
     height = Inches(0.8)
 
     textbox = slide.shapes.add_textbox(left, top, width, height)
