@@ -11,6 +11,7 @@ from .renderer import (
     render_itemize_cumulative,
     render_text_cumulative,
     render_text_block,
+    render_latex_to_image,
     compile_beamer_to_pdf,
     extract_frame_from_pdf,
     extract_beamer_theme
@@ -112,113 +113,124 @@ class BeamerConverter:
         if frame.title:
             add_title_to_slide(slide, frame.title)
 
-        current_top = 1.2 if frame.title else 0.5
-        left_margin = 0.5
-
         frame_dir = os.path.join(self.temp_dir, f"frame_{frame_idx:03d}")
         os.makedirs(frame_dir, exist_ok=True)
 
-        shapes_by_block = []
-
+        # Pass 1: Render all blocks to images
+        rendered_blocks = []
         for block_idx, block in enumerate(frame.blocks):
             block_dir = os.path.join(frame_dir, f"block_{block_idx:03d}")
             os.makedirs(block_dir, exist_ok=True)
+            rendered = self._render_block(block, block_idx, block_dir, preamble, verbose)
+            if rendered:
+                rendered_blocks.append(rendered)
 
-            if block.block_type == BlockType.TEXT:
-                # Text blocks with multiple paragraphs get animated
-                if len(block.items) > 1:
-                    image_paths = render_text_cumulative(
-                        block.items, block_dir, preamble, self.style, self.dpi
-                    )
-                    if image_paths:
-                        shapes = []
-                        for img_path in image_paths:
-                            shape = add_image_to_slide(
-                                slide, img_path,
-                                left=left_margin, top=current_top,
-                                width=self.content_width
-                            )
-                            shapes.append(shape)
+        # Pass 2: Compute content width, scaling down if content overflows
+        content_width = self._fit_content_width(rendered_blocks, bool(frame.title))
 
-                        if shapes:
-                            current_top += shapes[-1].height.inches + 0.15
+        # Pass 3: Place images on slide
+        current_top = 1.2 if frame.title else 0.5
+        left_margin = 0.5
+        shapes_by_block = []
 
-                        shapes_by_block.append((block_idx, shapes, True))  # Animated
-                elif block.items:
-                    # Single paragraph - no animation
-                    img_path = os.path.join(block_dir, "text.png")
-                    if render_text_block(block.items[0], img_path, preamble, self.style, self.dpi):
-                        shape = add_image_to_slide(
-                            slide, img_path,
-                            left=left_margin, top=current_top,
-                            width=self.content_width
-                        )
-                        current_top += shape.height.inches + 0.15
-                        shapes_by_block.append((block_idx, [shape], False))
-
-            elif block.block_type == BlockType.MATH_ALIGN:
-                env_name = self._get_env_name(block.raw_content)
-                image_paths = render_align_cumulative(
-                    block.items, block_dir, preamble, env_name, self.style, self.dpi
+        for block_idx, image_paths, is_animated, spacing in rendered_blocks:
+            shapes = []
+            for img_path in image_paths:
+                shape = add_image_to_slide(
+                    slide, img_path,
+                    left=left_margin, top=current_top,
+                    width=content_width
                 )
-
-                if image_paths:
-                    shapes = []
-                    for img_path in image_paths:
-                        shape = add_image_to_slide(
-                            slide, img_path,
-                            left=left_margin, top=current_top,
-                            width=self.content_width
-                        )
-                        shapes.append(shape)
-
-                    if shapes:
-                        current_top += shapes[-1].height.inches + 0.2
-
-                    shapes_by_block.append((block_idx, shapes, True))
-
-            elif block.block_type == BlockType.DISPLAY_MATH:
-                # Single equation - render once, one animation step
-                img_path = os.path.join(block_dir, "equation.png")
-                content = block.raw_content
-                from .renderer import render_latex_to_image
-                if render_latex_to_image(content, img_path, preamble, "math", self.style, self.dpi):
-                    shape = add_image_to_slide(
-                        slide, img_path,
-                        left=left_margin, top=current_top,
-                        width=self.content_width
-                    )
-                    current_top += shape.height.inches + 0.2
-                    shapes_by_block.append((block_idx, [shape], True))  # Still animate (appear on click)
-
-            elif block.block_type in (BlockType.ITEMIZE, BlockType.ENUMERATE):
-                env_name = 'enumerate' if block.block_type == BlockType.ENUMERATE else 'itemize'
-                image_paths = render_itemize_cumulative(
-                    block.items, block_dir, preamble, env_name, self.style, self.dpi
-                )
-
-                if image_paths:
-                    shapes = []
-                    for img_path in image_paths:
-                        shape = add_image_to_slide(
-                            slide, img_path,
-                            left=left_margin, top=current_top,
-                            width=self.content_width
-                        )
-                        shapes.append(shape)
-
-                    if shapes:
-                        current_top += shapes[-1].height.inches + 0.2
-
-                    shapes_by_block.append((block_idx, shapes, True))
-
-            elif block.block_type == BlockType.CODE:
-                # Code blocks are handled specially - skip here if we don't have PDF
-                if verbose:
-                    print(f"  Skipping code block (handled via Beamer PDF)")
+                shapes.append(shape)
+            if shapes:
+                current_top += shapes[-1].height.inches + spacing
+            shapes_by_block.append((block_idx, shapes, is_animated))
 
         # Add animations - each shape after the first in a block appears on click
         self._add_animations(slide, shapes_by_block)
+
+    def _render_block(self, block, block_idx, block_dir, preamble, verbose):
+        """Render a content block to images.
+
+        Returns:
+            Tuple of (block_idx, image_paths, is_animated, spacing) or None
+        """
+        if block.block_type == BlockType.TEXT:
+            if len(block.items) > 1:
+                image_paths = render_text_cumulative(
+                    block.items, block_dir, preamble, self.style, self.dpi
+                )
+                if image_paths:
+                    return (block_idx, image_paths, True, 0.15)
+            elif block.items:
+                img_path = os.path.join(block_dir, "text.png")
+                if render_text_block(block.items[0], img_path, preamble, self.style, self.dpi):
+                    return (block_idx, [img_path], False, 0.15)
+
+        elif block.block_type == BlockType.MATH_ALIGN:
+            env_name = self._get_env_name(block.raw_content)
+            image_paths = render_align_cumulative(
+                block.items, block_dir, preamble, env_name, self.style, self.dpi
+            )
+            if image_paths:
+                return (block_idx, image_paths, True, 0.2)
+
+        elif block.block_type == BlockType.DISPLAY_MATH:
+            img_path = os.path.join(block_dir, "equation.png")
+            if render_latex_to_image(block.raw_content, img_path, preamble, "math", self.style, self.dpi):
+                return (block_idx, [img_path], True, 0.2)
+
+        elif block.block_type in (BlockType.ITEMIZE, BlockType.ENUMERATE):
+            env_name = 'enumerate' if block.block_type == BlockType.ENUMERATE else 'itemize'
+            image_paths = render_itemize_cumulative(
+                block.items, block_dir, preamble, env_name, self.style, self.dpi
+            )
+            if image_paths:
+                return (block_idx, image_paths, True, 0.2)
+
+        elif block.block_type == BlockType.CODE:
+            if verbose:
+                print(f"  Skipping code block (handled via Beamer PDF)")
+
+        return None
+
+    def _fit_content_width(self, rendered_blocks, has_title):
+        """Compute content width, scaling down if content would overflow the slide."""
+        if not rendered_blocks:
+            return self.content_width
+
+        from PIL import Image
+
+        slide_height = 7.5
+        top_start = 1.2 if has_title else 0.5
+        bottom_margin = 0.3
+        available_height = slide_height - top_start - bottom_margin
+
+        total_image_height = 0.0
+        total_spacing = 0.0
+
+        for i, (block_idx, image_paths, is_animated, spacing) in enumerate(rendered_blocks):
+            if not image_paths:
+                continue
+            # The last image in each block is the tallest (cumulative rendering)
+            last_img = image_paths[-1]
+            with Image.open(last_img) as img:
+                pixel_w, pixel_h = img.size
+            if pixel_w > 0:
+                total_image_height += (pixel_h / pixel_w) * self.content_width
+            if i < len(rendered_blocks) - 1:
+                total_spacing += spacing
+
+        total_height = total_image_height + total_spacing
+
+        if total_height > available_height and total_image_height > 0:
+            target_image_height = available_height - total_spacing
+            if target_image_height > 0:
+                scale = target_image_height / total_image_height
+                scale = max(scale, 0.5)  # Don't shrink below 50%
+                return self.content_width * scale
+
+        return self.content_width
 
     def _process_code_frame(self, slide, frame: Frame, frame_idx: int):
         """Process a frame with code by extracting from Beamer PDF."""
