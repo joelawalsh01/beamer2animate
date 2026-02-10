@@ -361,14 +361,30 @@ def compile_beamer_to_pdf(tex_path: str, output_dir: str) -> Optional[str]:
     Returns:
         Path to the generated PDF, or None if failed
     """
-    import shutil
-
     tex_path = Path(tex_path)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Copy tex file to output dir
+    # Read tex content and inject packages to fix quote rendering in lstlisting
+    tex_content = tex_path.read_text(encoding='utf-8')
+
+    # Inject packages to fix quote rendering in code listings.
+    # OT1 encoding (LaTeX default) lacks a proper " glyph in monospace fonts,
+    # so double quotes vanish in lstlisting. T1 encoding fixes this.
+    # upquote fixes backtick and single-quote rendering in verbatim/listings.
+    quote_fix = ""
+    if 'fontenc' not in tex_content:
+        quote_fix += "\\usepackage[T1]{fontenc}\n"
+    if 'upquote' not in tex_content:
+        quote_fix += "\\usepackage{textcomp}\n\\usepackage{upquote}\n"
+
+    if quote_fix:
+        tex_content = tex_content.replace(
+            '\\begin{document}',
+            quote_fix + '\\begin{document}'
+        )
+
     work_tex = Path(output_dir) / tex_path.name
-    shutil.copy(tex_path, work_tex)
+    work_tex.write_text(tex_content, encoding='utf-8')
 
     try:
         # Run pdflatex twice for proper references
