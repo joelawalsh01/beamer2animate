@@ -161,6 +161,19 @@ def create_styled_document(content: str, preamble: str = "",
                 if 'geometry' not in line:  # Don't override our geometry
                     doc += line + '\n'
 
+    # Enhance bold math visibility: add a slight stroke outline to bold
+    # symbols so vectors etc. are more visually distinct from regular weight
+    doc += """\\usepackage{bm}
+\\let\\origmathbf\\mathbf
+\\renewcommand{\\mathbf}[1]{{\\pdfliteral direct{2 Tr 0.4 w}\\origmathbf{#1}\\pdfliteral direct{0 Tr 0 w}}}
+\\let\\origboldsymbol\\boldsymbol
+\\renewcommand{\\boldsymbol}[1]{{\\pdfliteral direct{2 Tr 0.4 w}\\origboldsymbol{#1}\\pdfliteral direct{0 Tr 0 w}}}
+\\let\\origbm\\bm
+\\renewcommand{\\bm}[1]{{\\pdfliteral direct{2 Tr 0.4 w}\\origbm{#1}\\pdfliteral direct{0 Tr 0 w}}}
+\\let\\origtextbf\\textbf
+\\renewcommand{\\textbf}[1]{{\\pdfliteral direct{2 Tr 0.4 w}\\origtextbf{#1}\\pdfliteral direct{0 Tr 0 w}}}
+"""
+
     doc += """
 \\begin{document}
 \\pagestyle{empty}

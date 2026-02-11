@@ -90,7 +90,7 @@ def add_image_to_slide(
     return picture
 
 
-def add_content_background(slide, top=0.74, height=6.11):
+def add_content_background(slide, top=1.0, height=5.85):
     """Add a white rectangle covering the Beamer content area.
 
     This hides the static content from the Beamer PDF background while

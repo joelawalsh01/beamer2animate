@@ -149,7 +149,7 @@ class BeamerConverter:
 
         # Pass 3: Place images on slide
         if has_bg:
-            current_top = 0.88
+            current_top = 1.05
             left_margin = 0.8
         else:
             current_top = 1.2 if frame.title else 0.5
@@ -226,7 +226,7 @@ class BeamerConverter:
 
         slide_height = 7.5
         if has_beamer_bg:
-            top_start = 0.88
+            top_start = 1.05
             bottom_margin = 0.6
         else:
             top_start = 1.2
