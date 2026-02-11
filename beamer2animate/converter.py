@@ -21,6 +21,7 @@ from .pptx_builder import (
     add_slide,
     add_title_to_slide,
     add_image_to_slide,
+    add_content_background,
     add_appear_animation,
     add_disappear_animation,
     save_presentation
@@ -68,17 +69,15 @@ class BeamerConverter:
         # Create temp directory
         self.temp_dir = tempfile.mkdtemp(prefix="beamer2animate_")
 
-        # Check if any frames have code - if so, compile the Beamer PDF
-        has_code_frames = any(frame.has_code for frame in doc.frames)
-        if has_code_frames:
-            if verbose:
-                print("Compiling Beamer document for code slides...")
-            pdf_dir = os.path.join(self.temp_dir, "beamer_pdf")
-            self.beamer_pdf_path = compile_beamer_to_pdf(tex_path, pdf_dir)
-            if self.beamer_pdf_path and verbose:
-                print("  Beamer PDF compiled successfully")
-            elif verbose:
-                print("  Warning: Could not compile Beamer PDF, code slides may not render correctly")
+        # Always compile the Beamer PDF for slide backgrounds (theme chrome)
+        if verbose:
+            print("Compiling Beamer document...")
+        pdf_dir = os.path.join(self.temp_dir, "beamer_pdf")
+        self.beamer_pdf_path = compile_beamer_to_pdf(tex_path, pdf_dir)
+        if self.beamer_pdf_path and verbose:
+            print("  Beamer PDF compiled successfully")
+        elif verbose:
+            print("  Warning: Could not compile Beamer PDF, slides will lack theme styling")
 
         # Create presentation
         prs = create_presentation()
@@ -100,17 +99,37 @@ class BeamerConverter:
 
         return True
 
+    def _is_static_frame(self, frame: Frame) -> bool:
+        """Check if this frame should be rendered as a static Beamer PDF page."""
+        if frame.has_code:
+            return True
+        if '\\titlepage' in frame.raw_content or '\\maketitle' in frame.raw_content:
+            return True
+        return False
+
     def _process_frame(self, prs, frame: Frame, frame_idx: int, preamble: str, verbose: bool):
         """Process a single frame and add it to the presentation."""
         slide = add_slide(prs)
 
-        # If this is a code frame, use screenshot from Beamer PDF
-        if frame.has_code and self.beamer_pdf_path:
-            self._process_code_frame(slide, frame, frame_idx)
+        # Add Beamer PDF page as background for theme styling (blue banners, etc.)
+        has_bg = False
+        if self.beamer_pdf_path:
+            bg_path = os.path.join(self.temp_dir, f"bg_{frame_idx:03d}.png")
+            if extract_frame_from_pdf(self.beamer_pdf_path, frame_idx + 1, bg_path, self.dpi):
+                add_image_to_slide(slide, bg_path, left=0, top=0, width=13.333)
+                has_bg = True
+
+        # Static frames (title page, code): just the Beamer PDF background
+        if self._is_static_frame(frame):
+            if not has_bg and frame.title:
+                add_title_to_slide(slide, frame.title)
             return
 
-        # Add title if present
-        if frame.title:
+        # For animated frames: cover the content area with white so animated
+        # content can appear on top, while the theme chrome stays visible
+        if has_bg:
+            add_content_background(slide)
+        elif frame.title:
             add_title_to_slide(slide, frame.title)
 
         frame_dir = os.path.join(self.temp_dir, f"frame_{frame_idx:03d}")
@@ -126,11 +145,15 @@ class BeamerConverter:
                 rendered_blocks.append(rendered)
 
         # Pass 2: Compute content width, scaling down if content overflows
-        content_width = self._fit_content_width(rendered_blocks, bool(frame.title))
+        content_width = self._fit_content_width(rendered_blocks, has_bg)
 
         # Pass 3: Place images on slide
-        current_top = 1.2 if frame.title else 0.5
-        left_margin = 1.0
+        if has_bg:
+            current_top = 0.88
+            left_margin = 0.8
+        else:
+            current_top = 1.2 if frame.title else 0.5
+            left_margin = 1.0
         shapes_by_block = []
 
         for block_idx, image_paths, is_animated, spacing in rendered_blocks:
@@ -194,7 +217,7 @@ class BeamerConverter:
 
         return None
 
-    def _fit_content_width(self, rendered_blocks, has_title):
+    def _fit_content_width(self, rendered_blocks, has_beamer_bg):
         """Compute content width, scaling down if content would overflow the slide."""
         if not rendered_blocks:
             return self.content_width
@@ -202,8 +225,12 @@ class BeamerConverter:
         from PIL import Image
 
         slide_height = 7.5
-        top_start = 1.2 if has_title else 0.5
-        bottom_margin = 0.3
+        if has_beamer_bg:
+            top_start = 0.88
+            bottom_margin = 0.6
+        else:
+            top_start = 1.2
+            bottom_margin = 0.3
         available_height = slide_height - top_start - bottom_margin
 
         total_image_height = 0.0
@@ -231,20 +258,6 @@ class BeamerConverter:
                 return self.content_width * scale
 
         return self.content_width
-
-    def _process_code_frame(self, slide, frame: Frame, frame_idx: int):
-        """Process a frame with code by extracting from Beamer PDF."""
-        # Extract the frame from the compiled Beamer PDF
-        # Frame indices in Beamer PDF are 1-indexed
-        img_path = os.path.join(self.temp_dir, f"code_frame_{frame_idx:03d}.png")
-
-        if extract_frame_from_pdf(self.beamer_pdf_path, frame_idx + 1, img_path, self.dpi):
-            # Add the full-frame image
-            shape = add_image_to_slide(
-                slide, img_path,
-                left=0, top=0,
-                width=13.333  # Full slide width for 16:9
-            )
 
     def _add_animations(self, slide, shapes_by_block):
         """Add appear/disappear animations to shapes.

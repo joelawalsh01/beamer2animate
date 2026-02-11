@@ -23,7 +23,7 @@ class TestFitContentWidth:
         return BeamerConverter(dpi=150)
 
     def test_no_blocks_returns_default(self, converter):
-        width = converter._fit_content_width([], has_title=True)
+        width = converter._fit_content_width([], has_beamer_bg=True)
         assert width == converter.content_width
 
     @requires_pdflatex
@@ -38,7 +38,7 @@ class TestFitContentWidth:
         render_text_block("Short text.", img_path, style=converter.style, dpi=converter.dpi)
 
         rendered_blocks = [(0, [img_path], False, 0.15)]
-        width = converter._fit_content_width(rendered_blocks, has_title=True)
+        width = converter._fit_content_width(rendered_blocks, has_beamer_bg=True)
         assert width == converter.content_width
 
     @requires_pdflatex
@@ -56,7 +56,7 @@ class TestFitContentWidth:
 
         if paths:
             rendered_blocks = [(0, paths, True, 0.2)]
-            width = converter._fit_content_width(rendered_blocks, has_title=True)
+            width = converter._fit_content_width(rendered_blocks, has_beamer_bg=True)
             # Should be scaled down (or equal if it happens to fit)
             assert width <= converter.content_width
 
@@ -71,7 +71,7 @@ class TestFitContentWidth:
         img.save(tall_img)
 
         rendered_blocks = [(0, [tall_img], False, 0.15)]
-        width = converter._fit_content_width(rendered_blocks, has_title=True)
+        width = converter._fit_content_width(rendered_blocks, has_beamer_bg=True)
         assert width >= converter.content_width * 0.5
 
     def test_no_title_gives_more_space(self, converter, tmp_dir):
@@ -84,8 +84,8 @@ class TestFitContentWidth:
         img.save(img_path)
 
         rendered_blocks = [(0, [img_path], False, 0.15)]
-        width_with_title = converter._fit_content_width(rendered_blocks, has_title=True)
-        width_no_title = converter._fit_content_width(rendered_blocks, has_title=False)
+        width_with_title = converter._fit_content_width(rendered_blocks, has_beamer_bg=True)
+        width_no_title = converter._fit_content_width(rendered_blocks, has_beamer_bg=False)
         # Without title, should allow equal or wider content (less scaling needed)
         assert width_no_title >= width_with_title
 

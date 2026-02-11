@@ -5,6 +5,8 @@ from typing import List, Optional, Tuple
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.enum.text import PP_ALIGN
+from pptx.enum.shapes import MSO_SHAPE
+from pptx.dml.color import RGBColor
 from lxml import etree
 
 # PowerPoint XML namespaces
@@ -86,6 +88,23 @@ def add_image_to_slide(
         picture = slide.shapes.add_picture(image_path, left_emu, top_emu)
 
     return picture
+
+
+def add_content_background(slide, top=0.74, height=6.11):
+    """Add a white rectangle covering the Beamer content area.
+
+    This hides the static content from the Beamer PDF background while
+    preserving the theme chrome (header banner with frame title, footer).
+    """
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(0), Inches(top),
+        Inches(13.333), Inches(height)
+    )
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    shape.line.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+    return shape
 
 
 def get_shape_id(shape) -> int:

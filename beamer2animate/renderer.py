@@ -383,6 +383,20 @@ def compile_beamer_to_pdf(tex_path: str, output_dir: str) -> Optional[str]:
             quote_fix + '\\begin{document}'
         )
 
+    # Add handout mode so each frame produces exactly one PDF page,
+    # giving a reliable 1:1 mapping between frame index and page number.
+    if 'handout' not in tex_content:
+        tex_content = re.sub(
+            r'\\documentclass\[([^\]]*)\]\{beamer\}',
+            r'\\documentclass[\1,handout]{beamer}',
+            tex_content
+        )
+        if 'handout' not in tex_content:
+            tex_content = tex_content.replace(
+                '\\documentclass{beamer}',
+                '\\documentclass[handout]{beamer}'
+            )
+
     work_tex = Path(output_dir) / tex_path.name
     work_tex.write_text(tex_content, encoding='utf-8')
 
